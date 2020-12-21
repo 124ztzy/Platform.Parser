@@ -36,7 +36,9 @@ namespace Platform.Parser
             {
                 case "=":
                     exp2 = ParseAssignment();
-                    exp1 = Expression.Assign(exp1, ConvertExpression(exp2, exp1.Type));
+                    if(exp1.NodeType == ExpressionType.Parameter && exp1.Type == typeof(object) && exp1.Type != exp2.Type)
+                        exp1 = Expression.Parameter(exp2.Type, (exp1 as ParameterExpression).Name);
+                    exp1 = Expression.Assign(exp1, exp2);
                     break;
             }
             return exp1;
@@ -55,6 +57,10 @@ namespace Platform.Parser
                     exp3 = ParseLogicOr();
                     exp1 = Expression.Condition(ConvertExpression(exp1, typeof(bool)), exp2, ConvertExpression(exp3, exp2.Type));
                     break;
+                case "??":
+                    exp2 = ParseLogicOr();
+                    exp1 = Expression.Coalesce(exp1, exp2);
+                    break;
             }
             return exp1;
         }
@@ -69,7 +75,7 @@ namespace Platform.Parser
                 {
                     case "||":
                         exp2 = ParseLogicAnd();
-                        exp1 = Expression.Or(ConvertExpression(exp1, typeof(bool)), ConvertExpression(exp2, typeof(bool)));
+                        exp1 = Expression.OrElse(ConvertExpression(exp1, typeof(bool)), ConvertExpression(exp2, typeof(bool)));
                         break;
                     default:
                         return exp1;
@@ -87,7 +93,7 @@ namespace Platform.Parser
                 {
                     case "&&":
                         exp2 = ParseEquality();
-                        exp1 = Expression.And(ConvertExpression(exp1, typeof(bool)), ConvertExpression(exp2, typeof(bool)));
+                        exp1 = Expression.AndAlso(ConvertExpression(exp1, typeof(bool)), ConvertExpression(exp2, typeof(bool)));
                         break;
                     default:
                         return exp1;
@@ -144,6 +150,7 @@ namespace Platform.Parser
             return exp1;
         }
         //解析位移 >> <<
+        //位运算 ^ & |
         //不支持
 
         //解析加减 + -
@@ -201,7 +208,7 @@ namespace Platform.Parser
                 }
             }
         }
-        //幂运算 ^
+        //幂运算 **
         protected Expression ParsePower()
         {
             Expression exp1 = ParseUnary();
@@ -211,7 +218,6 @@ namespace Platform.Parser
                 switch(_token)
                 {
                     case "**":
-                    case "^":
                         exp2 = ParseUnary();
                         exp1 = Expression.Power(ConvertExpression(exp1, typeof(double)), ConvertExpression(exp2, typeof(double)));
                         break;
@@ -333,16 +339,17 @@ namespace Platform.Parser
             }
             else
             {
-                if(outType == typeof(object))
+                //if(outType == typeof(object))
                     return Expression.Convert(exp, outType);
-                else
-                    return Expression.Convert(
-                        Expression.Call(
-                            typeof(Convert).GetMethod("ChangeType", new Type[] { typeof(object), typeof(Type) }), 
-                            exp.Type == typeof(object) ? exp : Expression.Convert(exp, typeof(object)), 
-                            Expression.Constant(outType)
-                        ), outType
-                    );
+                // else
+                //     return Expression.Convert(
+                //         Expression.Call(
+                //             typeof(Convert).GetMethod("ChangeType", new Type[] { typeof(object), typeof(Type) }), 
+                //             exp.Type == typeof(object) ? exp : Expression.Convert(exp, typeof(object)), 
+                //             //exp,
+                //             Expression.Constant(outType)
+                //         ), outType
+                //     );
             }
         }
 
@@ -366,6 +373,7 @@ namespace Platform.Parser
 
         //委托函数
         public Delegate Function { get; protected set; }
+        
         //参数
         public List<ParameterExpression> Parameters { get; } = new List<ParameterExpression>();
 

@@ -29,10 +29,10 @@ namespace Platform.Parser
             switch(c)
             {
                 case '\0':
-                    _token = "\\0";
+                    _token = "";
                     _tokenType = "Ender";
                     break;
-                case '?':
+                //单符号
                 case ':':
                 case '+':
                 case '-':
@@ -47,6 +47,8 @@ namespace Platform.Parser
                     _token = Statement.Substring(_lastPostion, _position - _lastPostion);
                     _tokenType = "Operator";
                     break;
+                //重叠符号
+                case '?':
                 case '*':
                 case '=':
                 case '|':
