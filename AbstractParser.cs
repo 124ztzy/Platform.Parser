@@ -28,60 +28,65 @@ namespace Platform.Parser
             _lastPostion = _position;
             switch(c)
             {
+                //结束符
                 case '\0':
                     _token = "";
-                    _tokenType = "Ender";
+                    _tokenType = TokenType.Ender;
                     break;
                 //单符号
+                case '.':
                 case ':':
-                case '+':
-                case '-':
-                case '/':
-                case '%':
-                case '^':
                 case '(':
                 case ')':
                 case '[':
                 case ']':
                     _position++;
                     _token = Statement.Substring(_lastPostion, _position - _lastPostion);
-                    _tokenType = "Operator";
+                    _tokenType = TokenType.Operator;
                     break;
-                //重叠符号
-                case '?':
-                case '*':
-                case '=':
-                case '|':
-                case '&':
-                     _position++;
-                    if(GetChar() == c)
-                        _position++;
-                    _token = Statement.Substring(_lastPostion, _position - _lastPostion);
-                    _tokenType = "Operator";
-                    break;
+                //单符号或带等号
                 case '!':
+                case '%':
                     _position++;
                     if(GetChar() == '=')
                         _position++;
                     _token = Statement.Substring(_lastPostion, _position - _lastPostion);
-                    _tokenType = "Operator";
+                    _tokenType = TokenType.Operator;
                     break;
+                //单符号或重叠符号
+                case '?':
+                case '=':
+                     _position++;
+                    if(GetChar() == c)
+                        _position++;
+                    _token = Statement.Substring(_lastPostion, _position - _lastPostion);
+                    _tokenType = TokenType.Operator;
+                    break;
+                //单符号或重叠或带等号
+                case '+':
+                case '-':
+                case '*':
+                case '/':
                 case '>':
                 case '<':
+                case '|':
+                case '&':
                     _position++;
                     if(GetChar() == '=' || GetChar() == c)
                         _position++;
                     _token = Statement.Substring(_lastPostion, _position - _lastPostion);
-                    _tokenType = "Operator";
+                    _tokenType = TokenType.Operator;
                     break;
+                //变量
                 case '@':
                     do {
                         _position++;
                         c2 = GetChar();
                     } while(char.IsLetter(c2) || char.IsNumber(c2) || c2 == '_');
                     _token = Statement.Substring(_lastPostion, _position - _lastPostion);
-                    _tokenType = "Variable";
+                    _tokenType = TokenType.Variable;
                     break;
+                //字符串
                 case '\'':
                 case '\"':
                     do {
@@ -89,17 +94,19 @@ namespace Platform.Parser
                     } while(GetChar() != c);
                     _position++;
                     _token = Statement.Substring(_lastPostion + 1, _position - _lastPostion - 2);
-                    _tokenType = "String";
+                    _tokenType = TokenType.String;
                     break;
+                //日期
                 case '#':
                     do {
                         _position++;
                     } while(GetChar() != c);
                     _position++;
                     _token = Statement.Substring(_lastPostion + 1, _position - _lastPostion - 2);
-                    _tokenType = "DateTime";
+                    _tokenType = TokenType.DateTime;
                     break;
                 default:
+                    //数字
                     if(char.IsNumber(c))
                     {
                         do {
@@ -107,22 +114,23 @@ namespace Platform.Parser
                             c2 = GetChar();
                         } while(char.IsNumber(c2) || c2 == '.');
                         _token = Statement.Substring(_lastPostion, _position - _lastPostion);
-                        _tokenType = "Number";
+                        _tokenType = TokenType.Number;
                     }
-                    else if(char.IsLetter(c))
+                    //标识符
+                    else if(char.IsLetter(c) || c == '_')
                     {
                         do {
                             _position++;
                             c2 = GetChar();
                         } while(char.IsLetter(c2) || char.IsNumber(c2) || c2 == '_');
                         _token = Statement.Substring(_lastPostion, _position - _lastPostion);
-                        _tokenType = "Identify";
+                        _tokenType = TokenType.Identify;
                     }
                     else
                     {
                         _position++;
                         _token = c.ToString();
-                        _tokenType = "Unknown";
+                        _tokenType = TokenType.Unknown;
                     }
                     break;
             }
@@ -132,7 +140,7 @@ namespace Platform.Parser
         protected void VerifyToken(string token)
         {
             if(token != _token)
-                throw new Exception(string.Format("statement \"{0}\" at {1} must be \"{2}\"", _token, _position, token));
+                throw new Exception($"statement \"{_token}\" at {_position} must be \"{token}\"");
         }
 
 
@@ -146,6 +154,19 @@ namespace Platform.Parser
         //语素片段
         protected string _token;
         //语素类型
-        protected string _tokenType;
+        protected TokenType _tokenType;
+    }
+
+    //语素类型
+    public enum TokenType
+    {
+        Unknown,
+        Operator,
+        Identify,
+        Variable,
+        Number,
+        DateTime,
+        String,
+        Ender,
     }
 }
